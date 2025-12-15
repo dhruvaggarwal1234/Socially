@@ -45,9 +45,10 @@ const userSchema = mongoose.Schema({
         ref : "User"
     }] ,
 
-    bookMarks :[{
+    bookmarks :[{
          type : Schema.Types.ObjectId,
-        ref : "Post"
+        ref : "Post",
+        default:[]
     }],
 
     posts :[{

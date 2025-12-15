@@ -6,7 +6,7 @@ import  jwt from "jsonwebtoken"
 import fs from "fs";
 import path from "path";
 import { v4 as uuid } from "uuid";
-
+import { cloudinary } from "../utils/Cloudinary.js"
 
 
 
@@ -222,7 +222,7 @@ const ChangeProfile = asyncHandler(async (req, res) => {
 
   const avatar = req.files.avatar;
 
-  // size limit (2MB)
+  //  size limit (2MB)
   const MAX_SIZE = 2 * 1024 * 1024;
   if (avatar.size > MAX_SIZE) {
     throw new ApiError(422, "Image size should be less than 2MB");
@@ -234,38 +234,64 @@ const ChangeProfile = asyncHandler(async (req, res) => {
     throw new ApiError(422, "Only image files are allowed");
   }
 
-  // create uploads folder if not exists
+  //  create uploads folder if not exists
   const uploadDir = path.join(process.cwd(), "uploads");
-
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
   // unique filename
   const ext = path.extname(avatar.name);
-  const newFileName = `avatar-${req.user.id}-${uuid()}${ext}`;
-  const uploadPath = path.join(uploadDir, newFileName);
+  const fileName = `avatar-${req.user.id}-${uuid()}${ext}`;
+  const uploadPath = path.join(uploadDir, fileName);
 
-  // move file
+  // move file locally
   await avatar.mv(uploadPath);
 
-  // save to DB
+  // upload to Cloudinary
+  const result = await cloudinary.uploader.upload(uploadPath, {
+    folder: "stacksocial/avatars",
+    resource_type: "image",
+  });
+
+  if (!result.secure_url) {
+    throw new ApiError(500, "Could not upload image to Cloudinary");
+  }
+
+  // delete local file (VERY IMPORTANT)
+  fs.unlinkSync(uploadPath);
+
+  // update user
   const updatedUser = await User.findByIdAndUpdate(
     req.user.id,
-    { profilePhoto: `/uploads/${newFileName}` },
+    { profilePhoto: result.secure_url },
     { new: true }
-  );
-
-  const { password, ...safeUser } = updatedUser.toObject();
+  ).select("-password");
 
   res.status(200).json({
     success: true,
     message: "Avatar uploaded successfully",
-    user: updatedUser
+    user: updatedUser,
   });
 });
+//==================================================== CREATE SaveProfile
+//POST : api/users/:id/bookmark
+//Protected
+
+const createSaveProfile = asyncHandler(async (req,res,next) => {
+    res.json("create the save the profile by the user")
+})
+
+//==================================================== other User saved Profile
+//GET : api/users/:id/bookmark
+//Protected
+
+const getSaveProfile = asyncHandler(async (req,res,next) => {
+    res.json("Profile by the useer save the profile")
+})
 
 
 
 
-export {ChangeProfile,followUnfollowUser,editUser,getUser,getUsers,loginUser,registerUser}
+
+export {ChangeProfile,followUnfollowUser,editUser,getUser,getUsers,loginUser,registerUser,createSaveProfile,getSaveProfile}
