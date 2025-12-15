@@ -3,6 +3,13 @@ import { User } from "../models/user.models.js"
 import bcrypt from "bcrypt"
 import {ApiError} from "../utils/ApiError.js"
 import  jwt from "jsonwebtoken"
+import fs from "fs";
+import path from "path";
+import { v4 as uuid } from "uuid";
+
+
+
+
 
 //=================================Register User
 // POST : api/users/register
@@ -10,31 +17,31 @@ import  jwt from "jsonwebtoken"
 const registerUser = asyncHandler(async (req, res) => {
   const { fullname, email, password } = req.body;
 
-  // 1️⃣ Validation
+  //  Validation
   if (!fullname || !email || !password) {
     throw new ApiError(422, "Fill all the details");
   }
 
   const lowerEmail = email.toLowerCase();
 
-  // 2️⃣ Check duplicate email
+  // Check duplicate email
   const emailExists = await User.findOne({ email: lowerEmail });
   if (emailExists) {
     throw new ApiError(409, "Email already exists");
   }
 
-  // 3️⃣ Hash password
+  // Hash password
   const salt = await bcrypt.genSalt(10);
   const hashPassword = await bcrypt.hash(password, salt);
 
-  // 4️⃣ Create user
+  // Create user
   const newUser = await User.create({
     fullname,
     email: lowerEmail,
     password: hashPassword
   });
 
-  // 5️⃣ Response
+  // Response
   res.status(201).json({
     success: true,
     message: "User registered successfully",
@@ -79,7 +86,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   //  Generate tokens
   const accessToken = jwt.sign(
-    { id: user._id },
+    { id:user._id },
     process.env.JWT_TOKEN_SECRET,
     { expiresIn: process.env.TOKEN_EXPIRY || "15m" }
   );
@@ -139,7 +146,7 @@ const getUsers= asyncHandler(async (req,res) =>{
 const editUser= asyncHandler(async (req,res) =>{
 
     const {fullname , bio} = req.body;
-    const editUser = await user.findByIdAndUpdate(req.user.id, {fullname ,bio} ,{new:true})
+    const editUser = await User.findByIdAndUpdate(req.user.id, {fullname ,bio} ,{new:true})
     res.status(200).json({
         editUser
     })
@@ -147,24 +154,118 @@ const editUser= asyncHandler(async (req,res) =>{
 
 
 //================================= fOLLOWUNFOLOWUSER
-// PATCH : api/users/:id/follow-unfollow
+// Get : api/users/:id/follow-unfollow
 //protected
 
-const followUnfollowUser= asyncHandler(async (req,res) =>{
+const followUnfollowUser = asyncHandler(async (req, res) => {
 
-    res.json("FollowUnfollowUser")
-})
+  const userToFollowId = req.params.id;
+  const currentUserId = req.user.id;
+
+  if (currentUserId === userToFollowId) {
+    throw new ApiError(422, "You can't follow yourself");
+  }
+
+  const currentUser = await User.findById(currentUserId);
+  const isFollowing = currentUser.following.includes(userToFollowId);
+
+  if (!isFollowing) {
+    const updatedUser = await User.findByIdAndUpdate(
+      userToFollowId,
+      { $addToSet: { followers: currentUserId } },
+      { new: true }
+    );
+
+    await User.findByIdAndUpdate(
+      currentUserId,
+      { $addToSet: { following: userToFollowId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "User followed successfully",
+      user: updatedUser
+    });
+
+  } else {
+    const updatedUser = await User.findByIdAndUpdate(
+      userToFollowId,
+      { $pull: { followers: currentUserId } },
+      { new: true }
+    );
+
+    await User.findByIdAndUpdate(
+      currentUserId,
+      { $pull: { following: userToFollowId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "User unfollowed successfully",
+      user: updatedUser
+    });
+  }
+});
 
 
 
-//================================= CHANGEPROFILE
+
+
+//================================= CHANGE PROFILE
 // PATCH : api/users/avatar
-//protected
+// protected
+const ChangeProfile = asyncHandler(async (req, res) => {
 
-const ChangeProfile= asyncHandler(async (req,res) =>{
+  if (!req.files || !req.files.avatar) {
+    throw new ApiError(400, "Avatar file is required");
+  }
 
-    res.json("ChangeUser")
-})
+  const avatar = req.files.avatar;
+
+  // size limit (2MB)
+  const MAX_SIZE = 2 * 1024 * 1024;
+  if (avatar.size > MAX_SIZE) {
+    throw new ApiError(422, "Image size should be less than 2MB");
+  }
+
+  // allowed types
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+  if (!allowedTypes.includes(avatar.mimetype)) {
+    throw new ApiError(422, "Only image files are allowed");
+  }
+
+  // create uploads folder if not exists
+  const uploadDir = path.join(process.cwd(), "uploads");
+
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  // unique filename
+  const ext = path.extname(avatar.name);
+  const newFileName = `avatar-${req.user.id}-${uuid()}${ext}`;
+  const uploadPath = path.join(uploadDir, newFileName);
+
+  // move file
+  await avatar.mv(uploadPath);
+
+  // save to DB
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user.id,
+    { profilePhoto: `/uploads/${newFileName}` },
+    { new: true }
+  );
+
+  const { password, ...safeUser } = updatedUser.toObject();
+
+  res.status(200).json({
+    success: true,
+    message: "Avatar uploaded successfully",
+    user: updatedUser
+  });
+});
+
+
 
 
 export {ChangeProfile,followUnfollowUser,editUser,getUser,getUsers,loginUser,registerUser}

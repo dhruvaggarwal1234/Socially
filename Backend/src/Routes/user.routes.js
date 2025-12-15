@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../Controllers/authMiddleware.js";
+import { authMiddleware } from "../Middlewares/authMiddleware.js";
 const router = express.Router();
 
 
@@ -18,10 +18,11 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 // ================= USERS ================
-router.get("/:id", getUser);
-router.get("/", getUsers);
-router.patch("/edits", protect,editUser);
-router.patch("/:id/follow-unfollow", followUnfollowUser);
-router.patch("/avatar", ChangeProfile);
+router.patch("/avatar", authMiddleware,ChangeProfile);
+router.get("/:id", authMiddleware, getUser);
+router.get("/",authMiddleware,getUsers);
+router.patch("/:id", authMiddleware, editUser);
+router.patch("/:id/follow-unfollow",authMiddleware, followUnfollowUser);
+
 
 export { router};
