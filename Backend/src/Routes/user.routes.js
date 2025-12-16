@@ -3,15 +3,7 @@ import { authMiddleware } from "../Middlewares/authMiddleware.js";
 const router = express.Router();
 
 
-import {
-  ChangeProfile,
-  followUnfollowUser,
-  editUser,
-  getUser,
-  getUsers,
-  loginUser,
-  registerUser
-} from "../Controllers/userControllers.js";
+import {  ChangeProfile,  followUnfollowUser,  editUser,  getUser,  getUsers,  loginUser,registerUser} from "../Controllers/userControllers.js";
 
 import { getUserBookmark, usersPost } from "../Controllers/postControllers.js";
 // ================= AUTH =================
