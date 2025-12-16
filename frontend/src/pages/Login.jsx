@@ -15,6 +15,8 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useDispatch } from "react-redux";
+import { userActions } from "../store/user-slice";
 
 const { Title, Text } = Typography;
 
@@ -22,6 +24,7 @@ const Login = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const loginUser = async (values) => {
     const { email, password } = values;
@@ -30,17 +33,25 @@ const Login = () => {
       setLoading(true);
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/users/login`,
+        `${import.meta.env.VITE_API_URL}/users/login`,
         { email, password }
       );
 
-      // 👉 If backend returns token/user later, handle here
-      // localStorage.setItem("token", res.data.token);
+      const data = res.data;
+
+      // ✅ UPDATE REDUX (THIS WAS MISSING)
+      dispatch(
+        userActions.loginSuccess({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        })
+      );
 
       message.success("Logged in successfully 🎉");
       form.resetFields();
 
-      navigate("/"); // or /home /dashboard
+      navigate("/");
     } catch (err) {
       message.error(
         err.response?.data?.message || "Invalid email or password"
@@ -62,7 +73,6 @@ const Login = () => {
         padding: 20,
       }}
     >
-      {/* MAIN CONTAINER */}
       <div
         style={{
           display: "flex",
@@ -74,7 +84,7 @@ const Login = () => {
           background: "#fff",
         }}
       >
-        {/* LEFT SIDE – LIVE PANEL */}
+        {/* LEFT PANEL */}
         <div
           style={{
             flex: 1,
@@ -132,27 +142,17 @@ const Login = () => {
           </div>
         </div>
 
-        {/* RIGHT SIDE – FORM */}
-        <Card
-          bordered={false}
-          style={{
-            flex: 1,
-            padding: "32px 24px",
-          }}
-        >
-          {/* HEADER */}
+        {/* RIGHT PANEL */}
+        <Card bordered={false} style={{ flex: 1, padding: "32px 24px" }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <Title level={3} style={{ marginBottom: 4 }}>
               Sign In
             </Title>
-            <Text type="secondary">
-              Enter your credentials
-            </Text>
+            <Text type="secondary">Enter your credentials</Text>
           </div>
 
           <Divider />
 
-          {/* FORM */}
           <Form
             form={form}
             layout="vertical"

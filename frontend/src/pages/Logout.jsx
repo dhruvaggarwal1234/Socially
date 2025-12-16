@@ -8,12 +8,9 @@ const Logout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    dispatch(userActions.changeCurrentUser(null));
-
-
-    localStorage.removeItem("currentUser");
-
     
+    dispatch(userActions.logout());
+
     navigate("/login", { replace: true });
   }, [dispatch, navigate]);
 
