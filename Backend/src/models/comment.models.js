@@ -5,9 +5,18 @@ const { Schema, model } = mongoose;
 const commentSchema = new Schema(
   {
     creator: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      creatorId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      creatorName: {
+        type: String,
+        required: true,
+      },
+      creatorPhoto: {
+        type: String,
+      },
     },
 
     postId: {
@@ -24,5 +33,6 @@ const commentSchema = new Schema(
   },
   { timestamps: true }
 );
+
 
 export const Comment = model("Comment", commentSchema);

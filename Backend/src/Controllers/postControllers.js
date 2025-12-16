@@ -319,6 +319,7 @@ const getUserBookmark = asyncHandler(async (req, res) => {
     success: true,
     count: user.bookmarks.length,
     bookmarks: user.bookmarks
+    
   });
 });
 

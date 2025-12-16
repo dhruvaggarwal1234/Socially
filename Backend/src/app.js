@@ -4,8 +4,10 @@ import upload from "express-fileupload";
 
 import { REQUEST_LIMIT } from "./contents.js";
 import { errorHandler, notFound } from "./Middlewares/Error.middleware.js";
-import {router} from "./Routes/user.routes.js"; // ✅ default import
+import {router} from "./Routes/user.routes.js"; 
 import {postRouter} from "./Routes/post.routes.js"
+import { commentRouter } from "./Routes/comment.routes.js";
+import { messageRouter } from "./Routes/message.routes.js";
 const app = express();
 
 // ================= GLOBAL MIDDLEWARES =================
@@ -28,6 +30,9 @@ app.use(upload());
 // ================= ROUTES =================
 app.use("/api/users", router);
 app.use("/api/posts" ,postRouter);
+app.use("/api/comments", commentRouter);
+app.use("/api/messages",messageRouter);
+app.use("api/conversations",messageRouter);
 
 // ================= ERROR MIDDLEWARES (ALWAYS LAST) =================
 app.use(notFound);
