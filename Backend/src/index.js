@@ -1,19 +1,21 @@
-import dotenv from "dotenv"
-import ConnectDB from "../../../Stacksocial/Backend/src/Db/db.js"
-import { app } from "./app.js"
-import { server } from "./socket/socket.js"
+import dotenv from "dotenv";
+import ConnectDB from "./Db/db.js";
+import { server } from "./socket/socket.js";
 
-dotenv.config()
+dotenv.config();
+
+const PORT = process.env.PORT || 5000;
 
 ConnectDB()
-.then(()=>{
-    app.on("error" ,(error) =>{
-        console.log("App Error :" , error)
-    })
-    server.listen(process.env.PORT || 8080 , () =>{
-        console.log(`Port is the working properly  ${process.env.PORT}`)
-    })
-})
-.catch((error) => {
-    console.log("App Error :" , error)
-})
+  .then(() => {
+    server.on("error", (error) => {
+      console.error("❌ Server Error:", error);
+    });
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("❌ DB Connection Error:", error);
+  });

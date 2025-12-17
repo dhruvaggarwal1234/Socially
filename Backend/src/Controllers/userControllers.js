@@ -17,14 +17,14 @@ import { cloudinary } from "../utils/Cloudinary.js"
 const registerUser = asyncHandler(async (req, res) => {
   const { fullname, email, password } = req.body;
 
-  //  Validation
+
   if (!fullname || !email || !password) {
     throw new ApiError(422, "Fill all the details");
   }
 
   const lowerEmail = email.toLowerCase();
 
-  // Check duplicate email
+  
   const emailExists = await User.findOne({ email: lowerEmail });
   if (emailExists) {
     throw new ApiError(409, "Email already exists");
@@ -62,14 +62,14 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  //  Validation
+ 
   if (!email || !password) {
     throw new ApiError(422, "Fill all the details");
   }
 
   const lowerEmail = email.toLowerCase();
 
-  //  Find user + include password
+
   const user = await User
     .findOne({ email: lowerEmail })
     .select("+password");

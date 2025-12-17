@@ -32,7 +32,6 @@ app.use("/api/users", router);
 app.use("/api/posts" ,postRouter);
 app.use("/api/comments", commentRouter);
 app.use("/api/messages",messageRouter);
-app.use("api/conversations",messageRouter);
 
 // ================= ERROR MIDDLEWARES (ALWAYS LAST) =================
 app.use(notFound);

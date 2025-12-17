@@ -123,7 +123,7 @@ const Register = () => {
           </div>
         </div>
 
-        {/* RIGHT SIDE – FORM */}
+
         <Card
           bordered={false}
           style={{
@@ -132,7 +132,7 @@ const Register = () => {
             transition: "all 0.4s ease",
           }}
         >
-          {/* HEADER */}
+    
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <Title level={3} style={{ marginBottom: 4 }}>
               Create Account
@@ -144,7 +144,7 @@ const Register = () => {
 
           <Divider />
 
-          {/* FORM */}
+
           <Form
             form={form}
             layout="vertical"

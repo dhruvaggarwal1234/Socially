@@ -29,14 +29,13 @@ const createMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  // create message
   const message = await Message.create({
     conversationId: conversation._id,
     senderId: req.user.id,
     text,
   });
 
-  // update lastMessage in conversation
+
   conversation.lastMessage = message._id;
   await conversation.save();
 
@@ -54,12 +53,12 @@ const createMessage = asyncHandler(async (req, res) => {
 const getMessages = asyncHandler(async (req, res) => {
   const { receiverId } = req.params;
 
-  // find conversation
+ 
   const conversation = await Conversation.findOne({
     participants: { $all: [req.user.id, receiverId] },
   });
 
-  // if no conversation, return empty chat
+ 
   if (!conversation) {
     return res.status(200).json({
       success: true,
@@ -86,7 +85,7 @@ const getMessages = asyncHandler(async (req, res) => {
 //Protected
 
 const getConservations = asyncHandler(async (req, res) => {
-  // 1️⃣ find conversations where user is a participant
+
   const conversations = await Conversation.find({
     participants: req.user.id,
   })
@@ -104,7 +103,6 @@ const getConservations = asyncHandler(async (req, res) => {
     })
     .sort({ updatedAt: -1 });
 
-  // 2️⃣ remove logged-in user from participants list
   const formattedConversations = conversations.map((conversation) => {
     const otherParticipants = conversation.participants.filter(
       (participant) => participant._id.toString() !== req.user.id.toString()

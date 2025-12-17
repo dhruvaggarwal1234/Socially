@@ -22,6 +22,7 @@ import ErrorPage from "./pages/ErrorPage";
 import { Provider } from "react-redux";
 import store from "./store/store";
 import EditPost from "./pages/EditPost";
+import EditProfile from "./pages/EditProfile";
 
 const router = createBrowserRouter([
   {
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
           { path: "users/:id", element: <Profile /> },
           { path: "posts/:id", element: <SinglePost /> },
           { path: "posts/:id/edit", element: <EditPost /> },
+          { path: "/profile/edit" ,element: <EditProfile />}, 
         ],
       },
     ],

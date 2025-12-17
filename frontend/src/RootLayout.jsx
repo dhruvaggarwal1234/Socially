@@ -1,6 +1,6 @@
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
-import Widgets from "./components/Widgets";
+
 import { Outlet } from "react-router-dom";
 
 const RootLayout = () => {
@@ -19,10 +19,7 @@ const RootLayout = () => {
             <Outlet />
           </main>
 
-          {/* Widgets */}
-          <aside className="hidden lg:block w-80">
-            <Widgets />
-          </aside>
+       
 
         </div>
       </div>
