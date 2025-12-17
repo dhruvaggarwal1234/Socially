@@ -12,7 +12,7 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-  
+    // ================= LOGIN =================
     loginSuccess: (state, action) => {
       const { user, accessToken, refreshToken } = action.payload;
 
@@ -25,16 +25,42 @@ const userSlice = createSlice({
       localStorage.setItem("refreshToken", refreshToken);
     },
 
-    
+    // ================= UPDATE USER =================
     changeCurrentUser: (state, action) => {
       state.currentUser = action.payload;
+
       if (action.payload) {
-        localStorage.setItem("currentUser", JSON.stringify(action.payload));
+        localStorage.setItem(
+          "currentUser",
+          JSON.stringify(action.payload)
+        );
       } else {
         localStorage.removeItem("currentUser");
       }
     },
 
+    // ================= BOOKMARK TOGGLE (NEW 🔥) =================
+    toggleBookmark: (state, action) => {
+      const postId = action.payload;
+
+      if (!state.currentUser) return;
+
+      const bookmarks = state.currentUser.bookmarks || [];
+
+      const isBookmarked = bookmarks.includes(postId);
+
+      state.currentUser.bookmarks = isBookmarked
+        ? bookmarks.filter((id) => id !== postId)
+        : [...bookmarks, postId];
+
+      // 🔥 persist to localStorage
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify(state.currentUser)
+      );
+    },
+
+    // ================= SOCKET =================
     setSocket: (state, action) => {
       state.socket = action.payload;
     },
@@ -43,7 +69,7 @@ const userSlice = createSlice({
       state.onlineUsers = action.payload;
     },
 
-
+    // ================= LOGOUT =================
     logout: (state) => {
       state.currentUser = null;
       state.accessToken = null;

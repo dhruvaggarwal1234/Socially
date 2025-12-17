@@ -24,9 +24,11 @@ const Home = () => {
           },
         }
       );
-      setPosts(res.data);
+
+      // ✅ IMPORTANT: store only posts array
+      setPosts(res.data.posts);
     } catch (err) {
-      console.log(err);
+      console.log("Fetch posts error:", err);
     } finally {
       setLoading(false);
     }
@@ -47,11 +49,18 @@ const Home = () => {
         }
       );
 
-      // backend returns { success, message, post }
+      // ✅ prepend new post
       setPosts((prev) => [res.data.post, ...prev]);
     } catch (err) {
-      setError(err?.response?.data?.message || "Something went wrong");
+      setError(
+        err?.response?.data?.message || "Something went wrong"
+      );
     }
+  };
+
+  // ================= DELETE POST (FROM FEED) =================
+  const handleDeletePost = (postId) => {
+    setPosts((prev) => prev.filter((p) => p._id !== postId));
   };
 
   useEffect(() => {
@@ -60,16 +69,24 @@ const Home = () => {
 
   return (
     <section className="space-y-6">
-      {/* Create Post */}
+      {/* CREATE POST */}
       <div className="bg-white rounded-xl border shadow-sm p-4">
-        <CreatePost onCreatePost={createPost} error={error} />
+        <CreatePost
+          onCreatePost={createPost}
+          error={error}
+        />
       </div>
 
-      {/* Feeds */}
+      {/* FEEDS */}
       {loading ? (
-        <div className="text-center text-gray-500">Loading posts...</div>
+        <div className="text-center text-gray-500">
+          Loading posts...
+        </div>
       ) : (
-        <Feeds posts={posts} />
+        <Feeds
+          posts={posts}
+          onDeletePost={handleDeletePost} // 🔥 IMPORTANT
+        />
       )}
     </section>
   );

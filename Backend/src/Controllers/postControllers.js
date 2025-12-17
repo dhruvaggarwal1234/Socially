@@ -253,42 +253,56 @@ const likeDislike = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    likes: post.likes, // ✅ REQUIRED for UI color
+    likes: post.likes,
   });
 });
 
 
 
-// ====================================================
-// BOOKMARK POST
+// ==================================================== BOOKMARK POST
 // POST : /api/posts/:id/bookmark
 // Protected
-// ====================================================
 
 const createBookmark = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const postId = req.params.id;
   const userId = req.user.id;
+
+  if (!postId) {
+    throw new ApiError(400, "Post ID missing");
+  }
 
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  const isBookmarked = user.bookmarks.includes(id);
+  const alreadyBookmarked = user.bookmarks.some(
+    (id) => id.toString() === postId
+  );
 
-  if (isBookmarked) {
-    user.bookmarks.pull(id);
+  let updatedUser;
+
+  if (alreadyBookmarked) {
+    updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { bookmarks: postId } },
+      { new: true }
+    );
   } else {
-    user.bookmarks.push(id);
+    updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $addToSet: { bookmarks: postId } }, 
+      { new: true }
+    );
   }
-
-  await user.save();
 
   res.status(200).json({
     success: true,
-    bookmarks: user.bookmarks,
+    bookmarked: !alreadyBookmarked,
+    bookmarks: updatedUser.bookmarks,
   });
 });
+
 
 
 // ====================================================
@@ -307,12 +321,23 @@ const getUserBookmark = asyncHandler(async (req, res) => {
     options: { sort: { createdAt: -1 } },
   });
 
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  // 🔥 REMOVE NULL POSTS (very important)
+  const validBookmarks = user.bookmarks.filter(Boolean);
+
   res.status(200).json({
     success: true,
-    count: user.bookmarks.length,
-    bookmarks: user.bookmarks,
+    count: validBookmarks.length,
+    bookmarks: validBookmarks,
   });
 });
+
 
 
 // ====================================================

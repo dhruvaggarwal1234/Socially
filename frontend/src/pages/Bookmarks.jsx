@@ -9,27 +9,26 @@ const { Title } = Typography;
 const Bookmarks = () => {
   const { accessToken } = useSelector((state) => state.user);
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchBookmarks = async () => {
+      setLoading(true);
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/users/bookmark`,
+          `${import.meta.env.VITE_API_URL}/users/bookmarks`, // ✅ FIXED
           {
             headers: { Authorization: `Bearer ${accessToken}` },
             withCredentials: true,
           }
         );
 
-        // 🔥 mark bookmarked posts
-        const bookmarkedPosts = res.data.bookmarks.map((post) => ({
-          ...post,
-          isBookmarked: true,
-        }));
-
-        setPosts(bookmarkedPosts);
+        // backend already returns populated posts
+        setPosts(res.data.bookmarks);
       } catch (err) {
         console.log("Bookmark fetch error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -39,7 +38,12 @@ const Bookmarks = () => {
   return (
     <div>
       <Title level={3}>Saved Posts</Title>
-      <Feeds posts={posts} />
+
+      {loading ? (
+        <div className="text-gray-500">Loading bookmarks...</div>
+      ) : (
+        <Feeds posts={posts} />
+      )}
     </div>
   );
 };
