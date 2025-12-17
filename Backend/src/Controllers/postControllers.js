@@ -3,18 +3,17 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Post } from "../models/post.models.js";
 import { User } from "../models/user.models.js";
 
-import {v4 as uuid} from "uuid";
+import { v4 as uuid } from "uuid";
 import { cloudinary } from "../utils/Cloudinary.js";
 import fs from "fs";
 import path from "path";
 
 
-//==================================================== CREATE POST
-
-//POST : api/posts
-//Protected
-
-
+// ====================================================
+// CREATE POST
+// POST : /api/posts
+// Protected
+// ====================================================
 
 const createPost = asyncHandler(async (req, res) => {
   const { body } = req.body;
@@ -58,270 +57,277 @@ const createPost = asyncHandler(async (req, res) => {
     image: result.secure_url,
   });
 
+  const populatedPost = await Post.findById(newPost._id)
+    .populate("creator", "fullname profilePhoto");
+
   res.status(201).json({
     success: true,
     message: "Post created successfully",
-    post: newPost,
+    post: populatedPost,
   });
 });
 
 
+// ====================================================
+// GET SINGLE POST
+// GET : /api/posts/:id
+// Protected
+// ====================================================
+
+const getPost = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const post = await Post.findById(id)
+    .populate("creator", "fullname profilePhoto")
+    .populate({
+      path: "comments",
+      options: { sort: { createdAt: -1 } },
+    });
+
+  if (!post) {
+    throw new ApiError(404, "Post not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    post,
+  });
+});
 
 
+// ====================================================
+// GET ALL POSTS (HOME FEED)
+// GET : /api/posts
+// Protected
+// ====================================================
 
-//==================================================== GET POST
+const getPosts = asyncHandler(async (req, res) => {
+  const posts = await Post.find()
+    .populate("creator", "fullname profilePhoto")
+    .populate({
+      path: "comments",
+      options: { sort: { createdAt: -1 } },
+    })
+    .sort({ createdAt: -1 });
 
-//GET : api/posts/:id
-//Protected
-
-const getPost = asyncHandler( async (req ,res, next) => {
-    const{id} = req.params;
-    const post = await Post.findById(id).populate("creator").populate({path:"comments", options:{sort:{createdAt:-1}}})
-    res.json(post)
-
-})
-
-//==================================================== GET POSTS
-
-//GET : api/posts
-//Protected
-
-const getPosts = asyncHandler( async (req ,res, next) => {
-    
-    const posts = await Post.find().sort({createdAt:-1})
-    res.json(posts)
-})
+  res.status(200).json({
+    success: true,
+    count: posts.length,
+    posts,
+  });
+});
 
 
+// ====================================================
+// GET FOLLOWING POSTS
+// GET : /api/posts/following
+// Protected
+// ====================================================
 
-//==================================================== UPDATE POST
+const followingPost = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("following");
 
-//PATCH : api/post/:id
-//Protected
+  const posts = await Post.find({
+    creator: { $in: user.following },
+  })
+    .populate("creator", "fullname profilePhoto")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: posts.length,
+    posts,
+  });
+});
+
+
+// ====================================================
+// GET USER POSTS
+// GET : /api/users/:id/posts
+// Protected
+// ====================================================
+
+const usersPost = asyncHandler(async (req, res) => {
+  const userId = req.params.id;
+
+  const posts = await Post.find({ creator: userId })
+    .populate("creator", "fullname profilePhoto")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: posts.length,
+    posts,
+  });
+});
+
+
+// ====================================================
+// UPDATE POST
+// PATCH : /api/posts/:id
+// Protected
+// ====================================================
 
 const updatePost = asyncHandler(async (req, res) => {
   const postId = req.params.id;
   const { body } = req.body;
 
   const post = await Post.findById(postId);
-
   if (!post) {
     throw new ApiError(404, "Post not found");
   }
 
-  // it check the user is the valid or not
   if (post.creator.toString() !== req.user.id) {
     throw new ApiError(403, "You can't update this post");
   }
-
 
   const updatedPost = await Post.findByIdAndUpdate(
     postId,
     { body },
     { new: true }
-  );
+  ).populate("creator", "fullname profilePhoto");
 
   res.status(200).json({
     success: true,
     message: "Post updated successfully",
-    post: updatedPost
+    post: updatedPost,
   });
 });
 
 
-
-
-//==================================================== DELETE POST
-
-//DELETE : api/post/:id
-//Protected
+// ====================================================
+// DELETE POST
+// DELETE : /api/posts/:id
+// Protected
+// ====================================================
 
 const deletePost = asyncHandler(async (req, res) => {
   const postId = req.params.id;
 
-
   const post = await Post.findById(postId);
-
   if (!post) {
     throw new ApiError(404, "Post not found");
   }
 
-  // checking for the valid user
   if (post.creator.toString() !== req.user.id) {
     throw new ApiError(403, "You are not allowed to delete this post");
   }
 
-  //  Delete post
   await Post.findByIdAndDelete(postId);
 
-  // delete form the User modeel too
-
-  
-
-    res.status(200).json({
+  res.status(200).json({
     success: true,
     message: "Post deleted successfully",
   });
 });
 
 
-
-
-//==================================================== GET FOLLOWINGS POST
-
-//GET : api/posts/following
-//Protected
-
-
-const followingPost = asyncHandler(async (req, res) => {
-
-  // current user following list
-  const user = await User.findById(req.user.id).select("following");
-
-  // number of there following  posts
-  const posts = await Post.find({
-    creator: { $in: user.following }
-  })
-   
-
-  res.status(200).json({
-    success: true,
-    count: posts.length,
-    posts
-  });
-});
-
-
-
-//==================================================== GET LIKE AND DISLIKE POST
-
-//POST : api/posts/:id/like
-//Protected
-
+// ====================================================
+// LIKE / DISLIKE POST
+// POST : /api/posts/:id/like
+// Protected
+// ====================================================
 
 const likeDislike = asyncHandler(async (req, res) => {
-
   const postId = req.params.id;
   const userId = req.user.id;
 
   const post = await Post.findById(postId);
-
   if (!post) {
     throw new ApiError(404, "Post not found");
   }
 
-  const isLiked = post.likes.includes(userId);
+  const isLiked = post.likes.some(
+    (id) => id.toString() === userId
+  );
 
   if (!isLiked) {
     post.likes.push(userId);
-    await post.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Post liked",
-      likesCount: post.likes.length
-    });
   } else {
-    post.likes.pull(userId);
-    await post.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Post disliked",
-      likesCount: post.likes.length
-    });
+    post.likes = post.likes.filter(
+      (id) => id.toString() !== userId
+    );
   }
-});
 
-
-
-//==================================================== GET FOLLOWINGS POST
-
-//GET : api/users/:id/posts
-//Protected
-
-const usersPost = asyncHandler(async (req, res) => {
-
-  const userId = req.params.id;
-
-  const posts = await Post.find({ creator: userId })
-    .sort({ createdAt: -1 });
+  await post.save();
 
   res.status(200).json({
     success: true,
-    count: posts,
-    posts
+    likes: post.likes, // ✅ REQUIRED for UI color
   });
 });
 
-//==================================================== CREATE BOOK
-//POST : api/posts/:id/bookmark
-//Protected
 
+
+// ====================================================
+// BOOKMARK POST
+// POST : /api/posts/:id/bookmark
+// Protected
+// ====================================================
 
 const createBookmark = asyncHandler(async (req, res) => {
-
-  const { id } = req.params; // postId
+  const { id } = req.params;
   const userId = req.user.id;
 
   const user = await User.findById(userId);
-
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  const bookmarks = user.bookmarks || [];
-  const isBookmarked = bookmarks.includes(id);
+  const isBookmarked = user.bookmarks.includes(id);
 
   if (isBookmarked) {
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $pull: { bookmarks: id } },
-      { new: true }
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Bookmark removed",
-      bookmarks: updatedUser.bookmarks
-    });
-
+    user.bookmarks.pull(id);
   } else {
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $addToSet: { bookmarks: id } },
-      { new: true }
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Post bookmarked",
-      bookmarks: updatedUser.bookmarks
-    });
+    user.bookmarks.push(id);
   }
-});
 
-
-//==================================================== User Bookmarks
-//GET : api/users/bookmark
-//Protected
-
-
-const getUserBookmark = asyncHandler(async (req, res) => {
-
-  const user = await User.findById(req.user.id)
-    .populate({
-      path: "bookmarks",
-      options: { sort: { createdAt: -1 } }
-    });
+  await user.save();
 
   res.status(200).json({
     success: true,
-    count: user.bookmarks.length,
-    bookmarks: user.bookmarks
-    
+    bookmarks: user.bookmarks,
   });
 });
 
 
-export {createPost , getPost ,getPosts , updatePost,deletePost,followingPost ,likeDislike ,usersPost , createBookmark ,getUserBookmark}
+// ====================================================
+// GET USER BOOKMARKS
+// GET : /api/users/bookmark
+// Protected
+// ====================================================
+
+const getUserBookmark = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).populate({
+    path: "bookmarks",
+    populate: {
+      path: "creator",
+      select: "fullname profilePhoto",
+    },
+    options: { sort: { createdAt: -1 } },
+  });
+
+  res.status(200).json({
+    success: true,
+    count: user.bookmarks.length,
+    bookmarks: user.bookmarks,
+  });
+});
+
+
+// ====================================================
+// EXPORTS
+// ====================================================
+
+export {
+  createPost,
+  getPost,
+  getPosts,
+  followingPost,
+  usersPost,
+  updatePost,
+  deletePost,
+  likeDislike,
+  createBookmark,
+  getUserBookmark,
+};
